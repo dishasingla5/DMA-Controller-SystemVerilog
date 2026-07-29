@@ -1,0 +1,264 @@
+module axi4_master (
+
+    input logic clk,
+    input logic rst_n,
+
+    input logic [31:0] src_addr,
+    input logic [31:0] dst_addr,
+    input logic [31:0] length,
+
+    input logic start,
+    output logic done,
+
+    axi_if mem_if
+
+);
+
+typedef enum logic [2:0] {
+    IDLE,
+    READ_REQ,
+    READ_DATA,
+    WRITE_REQ,
+    WRITE_DATA,
+    COMPLETE
+} state_t;
+
+state_t curr_state, next_state;
+
+logic [31:0] data_buf;
+
+logic [31:0] src_addr_curr;
+logic [31:0] dst_addr_curr;
+logic [31:0] length_curr;
+logic [31:0] word_count;
+  
+
+
+//----------------------------------
+// State Register
+//----------------------------------
+
+always_ff @(posedge clk or negedge rst_n) begin
+
+    if(!rst_n)
+        curr_state <= IDLE;
+    else
+        curr_state <= next_state;
+
+end
+
+
+//----------------------------------
+// Transfer Registers
+//----------------------------------
+
+always_ff @(posedge clk or negedge rst_n) begin
+
+    if(!rst_n) begin
+
+        src_addr_curr <= 0;
+        dst_addr_curr <= 0;
+         length_curr   <= 0;
+        word_count    <= 0;
+        
+
+    end
+
+    else begin
+
+        //----------------------------------
+        // Load at start
+        //----------------------------------
+
+          if(curr_state == IDLE && start) begin
+
+          src_addr_curr <= src_addr;
+          dst_addr_curr <= dst_addr;
+          length_curr   <= length;
+
+          word_count    <= 0;
+
+      end
+
+        //----------------------------------
+        // Update after successful write
+        //----------------------------------
+
+        else if(curr_state == WRITE_DATA &&
+                mem_if.bvalid &&
+                mem_if.bready) begin
+
+            src_addr_curr <= src_addr_curr + 4;
+            dst_addr_curr <= dst_addr_curr + 4;
+
+            word_count <= word_count + 1;
+
+        end
+
+    end
+
+end
+
+
+//----------------------------------
+// Read Data Capture
+//----------------------------------
+
+always_ff @(posedge clk or negedge rst_n) begin
+
+    if(!rst_n)
+        data_buf <= 0;
+
+    else if(curr_state == READ_DATA && mem_if.rvalid)
+        data_buf <= mem_if.rdata;
+
+end
+
+
+//----------------------------------
+// Next State Logic
+//----------------------------------
+
+always_comb begin
+
+    next_state = curr_state;
+
+    case(curr_state)
+
+        IDLE: begin
+
+            if(start)
+                next_state = READ_REQ;
+
+        end
+
+        READ_REQ: begin
+
+            if(mem_if.arready)
+                next_state = READ_DATA;
+
+        end
+
+        READ_DATA: begin
+
+            if(mem_if.rvalid)
+                next_state = WRITE_REQ;
+
+        end
+
+        WRITE_REQ: begin
+
+            if(mem_if.awready)
+                next_state = WRITE_DATA;
+
+        end
+
+        WRITE_DATA: begin
+
+            if(mem_if.bvalid) begin
+               $display("WRITE_DATA wc=%0d len=%0d",
+                  word_count, length_curr);
+
+               if(word_count == length_curr - 1)
+                    next_state = COMPLETE;
+                else
+                    next_state = READ_REQ;
+
+            end
+
+        end
+
+        COMPLETE: begin
+
+            next_state = IDLE;
+
+        end
+
+        default: begin
+
+            next_state = IDLE;
+
+        end
+
+    endcase
+
+end
+
+
+//----------------------------------
+// Output Logic
+//----------------------------------
+
+always_comb begin
+
+    //----------------------------------
+    // Defaults
+    //----------------------------------
+
+    mem_if.arvalid = 0;
+    mem_if.araddr  = 0;
+    mem_if.arlen   = 0;
+
+    mem_if.rready  = 0;
+
+    mem_if.awvalid = 0;
+    mem_if.awaddr  = 0;
+    mem_if.awlen   = 0;
+
+    mem_if.wvalid  = 0;
+    mem_if.wdata   = 0;
+    mem_if.wlast   = 0;
+
+    mem_if.bready  = 0;
+
+    done = 0;
+
+    //----------------------------------
+    // State Actions
+    //----------------------------------
+
+    case(curr_state)
+
+        READ_REQ: begin
+
+            mem_if.arvalid = 1;
+            mem_if.araddr  = src_addr_curr;
+
+        end
+
+        READ_DATA: begin
+
+            mem_if.rready = 1;
+
+        end
+
+        WRITE_REQ: begin
+
+            mem_if.awvalid = 1;
+            mem_if.awaddr  = dst_addr_curr;
+
+        end
+
+        WRITE_DATA: begin
+
+            mem_if.wvalid = 1;
+            mem_if.wdata  = data_buf;
+
+            mem_if.wlast  = 1;
+
+            mem_if.bready = 1;
+
+        end
+
+        COMPLETE: begin
+              
+            done = 1;
+          $display(">>> AXI COMPLETE at %0t", $time);
+
+        end
+
+    endcase
+
+end
+
+endmodule
