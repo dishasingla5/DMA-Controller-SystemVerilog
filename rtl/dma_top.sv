@@ -76,6 +76,9 @@ module dma_top #(
         .ADDR_WIDTH(ADDR_WIDTH)
     ) u_axil_slave (
 
+        .clk    (clk),
+        .rst_n  (rst_n),
+
         .cfg_if (cfg_if),
 
         .wr_addr(wr_addr),
