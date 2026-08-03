@@ -20,11 +20,6 @@ import uvm_pkg::*;
 `include "dma_env.sv"
 `include "dma_coverage.sv"
 `include "dma_test.sv"
-
-//------------------------------------------------------------
-// Assertions
-//------------------------------------------------------------
-
 `include "assertions.sv"
 
 module top_tb;
