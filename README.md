@@ -1,104 +1,68 @@
+
 # Configurable Multi-Channel DMA Controller
 
-A SystemVerilog implementation of a configurable **4-channel Direct Memory Access (DMA) Controller** with an **AXI4-Lite configuration interface**, **AXI4 Master memory interface**, and a complete **UVM-based verification environment**.
+A **SystemVerilog-based 4-channel Direct Memory Access (DMA) Controller** featuring an AXI4-Lite configuration interface, an AXI4 Master memory interface, and a UVM-based verification environment.
 
-The project focuses on RTL design, AXI protocol implementation, and verification methodology by developing a modular DMA engine and validating its functionality using UVM components including sequences, driver, monitor, scoreboard, agent, environment, coverage, and assertions.
+This project focuses on modular RTL design, AXI protocol implementation, multi-channel arbitration, and functional verification using SystemVerilog and UVM.
 
----
+## Key Features
 
-# Features
-
-## RTL Design
-
-- 4 independent DMA channels
-- AXI4-Lite Slave interface for CPU configuration
-- AXI4 Master interface for memory transactions
+### RTL Design
+- Four independently controlled DMA channels
+- AXI4-Lite slave interface for CPU configuration
+- AXI4 master interface for memory transactions
 - Parameterized address and data widths
-- Independent channel FSM control
-- Round-Robin arbitration between DMA channels
-- Sticky grant mechanism to prevent mid-transfer preemption
-- Channel multiplexer for shared AXI Master access
+- Independent channel finite-state machines (FSMs)
+- Round-robin arbitration between DMA channels
+- Sticky-grant mechanism to maintain channel ownership during a transfer
+- Channel multiplexer for shared AXI master access
 - AXI memory model for simulation
-- Modular and reusable RTL architecture
 
----
+### UVM-Based Verification
+- Modular UVM verification environment
+- Constrained-random transaction generation
+- UVM sequence item, sequence, sequencer, driver, and monitor
+- Agent and environment integration
+- Scoreboard-based transaction checking
+- Functional coverage collection
+- SystemVerilog assertions
+- Multi-channel DMA stimulus and verification
 
-## Verification Environment
+## Architecture
 
-Implemented a complete **UVM verification environment** consisting of:
-
-- UVM Sequence Item
-- UVM Sequence
-- UVM Sequencer
-- UVM Driver
-- UVM Monitor
-- UVM Agent
-- UVM Environment
-- UVM Scoreboard
-- UVM Test
-- Functional Coverage
-- SystemVerilog Assertions
-
-Verification flow:
-
-```
-Sequence
-    |
-    v
-Sequencer
-    |
-    v
-Driver
-    |
-    v
-DMA DUT
-    |
-    v
-Monitor
-    |
-    v
-Scoreboard
+```text
+                    CPU
+                     |
+               AXI4-Lite Bus
+                     |
+             +------------------+
+             | AXI4-Lite Slave  |
+             +------------------+
+                     |
+               Register File
+                     |
+          +-----------------------+
+          | DMA Channel FSMs      |
+          | CH0 | CH1 | CH2 | CH3 |
+          +-----------------------+
+                     |
+             Round-Robin Arbiter
+                     |
+              Channel Mux
+                     |
+                AXI4 Master
+                     |
+              AXI Memory Model
 ```
 
----
+The AXI4-Lite interface configures DMA transfers. Independent channel FSMs control channel operation, while the arbiter selects a requesting channel and the multiplexer routes its signals through the shared AXI master interface.
 
-# Architecture
+## Repository Structure
 
-```
-                         CPU
-                          |
-                    AXI4-Lite Bus
-                          |
-              +----------------------+
-              |   AXI4-Lite Slave    |
-              +----------------------+
-                          |
-                   Register File
-                          |
-        +--------------------------------+
-        | CH0 | CH1 | CH2 | CH3 | FSMs  |
-        +--------------------------------+
-                          |
-                 Round-Robin Arbiter
-                          |
-                  Channel Multiplexer
-                          |
-                     AXI4 Master
-                          |
-                  AXI Memory Model
-```
-
----
-
-# Repository Structure
-
-```
-DMA Controller
-│
+```text
+DMA-Controller/
 ├── README.md
-│
 ├── docs/
-│
 ├── rtl/
 │   ├── arbiter.sv
 │   ├── axi4_lite_slave.sv
@@ -110,12 +74,9 @@ DMA Controller
 │   ├── channel_mux.sv
 │   ├── register_file.sv
 │   └── dma_top.sv
-│
 ├── sim/
-│
 ├── tb/
 │   └── top_tb.sv
-│
 └── uvm/
     ├── dma_sequence_item.sv
     ├── dma_sequence.sv
@@ -130,98 +91,119 @@ DMA Controller
     └── assertions.sv
 ```
 
----
-
-# RTL Modules
+## RTL Modules
 
 | Module | Description |
 |---|---|
-| `dma_top.sv` | Top-level DMA integration |
+| `dma_top.sv` | Integrates the DMA controller modules |
 | `axi4_lite_slave.sv` | Handles CPU configuration transactions |
-| `axi4_master.sv` | Performs AXI memory read/write operations |
-| `arbiter.sv` | Round-robin channel arbitration |
+| `axi4_master.sv` | Manages AXI memory transactions |
+| `arbiter.sv` | Implements round-robin channel arbitration |
 | `ch_fsm.sv` | Controls individual DMA channel operation |
-| `channel_mux.sv` | Routes selected channel signals |
-| `axi_mem_model.sv` | Simulation memory model |
-| `axi_if.sv` | AXI4 interface |
-| `axil_if.sv` | AXI4-Lite interface |
+| `channel_mux.sv` | Routes the selected channel's signals |
+| `register_file.sv` | Stores DMA configuration and control registers |
+| `axi_mem_model.sv` | Provides a simulation memory model |
+| `axi_if.sv` | Defines the AXI4 interface |
+| `axil_if.sv` | Defines the AXI4-Lite interface |
+| `dma_top.sv` | Top-level DMA integration |
 
----
+## UVM Verification Environment
 
-# UVM Components
+The testbench uses a modular transaction-based architecture.
 
-| Component | Purpose |
+```text
+        UVM Sequence
+              |
+              v
+          Sequencer
+              |
+              v
+           Driver
+              |
+              v
+         DMA Controller
+              |
+              v
+           Monitor
+              |
+              v
+          Scoreboard
+              |
+              v
+       Pass / Fail Results
+```
+
+### UVM Components
+
+| Component | Responsibility |
 |---|---|
-| `dma_sequence_item.sv` | Transaction object containing DMA transfer information |
-| `dma_sequence.sv` | Generates constrained stimulus |
-| `dma_sequencer.sv` | Controls transaction flow to driver |
-| `dma_driver.sv` | Drives AXI4-Lite configuration transactions |
+| `dma_sequence_item.sv` | Represents DMA transaction parameters |
+| `dma_sequence.sv` | Generates constrained-random stimulus |
+| `dma_sequencer.sv` | Coordinates transaction delivery |
+| `dma_driver.sv` | Drives configuration transactions |
 | `dma_monitor.sv` | Observes DUT activity |
-| `dma_scoreboard.sv` | Checks expected vs actual behavior |
-| `dma_agent.sv` | Encapsulates UVM components |
-| `dma_env.sv` | Creates complete verification environment |
-| `dma_test.sv` | Controls simulation scenarios |
-| `dma_coverage.sv` | Functional coverage collection |
-| `assertions.sv` | Protocol and design checks |
+| `dma_scoreboard.sv` | Checks observed behavior against expected results |
+| `dma_agent.sv` | Groups the UVM agent components |
+| `dma_env.sv` | Instantiates and connects verification components |
+| `dma_test.sv` | Configures and runs the test |
+| `dma_coverage.sv` | Collects functional coverage |
+| `assertions.sv` | Checks implemented protocol and design properties |
 
----
+## Verification Results
 
-# Verification
+**Latest reported simulation run**
 
-The DMA controller is verified using:
+| Metric | Result |
+|---|---:|
+| Generated transactions | 500 |
+| Scoreboard PASS | 128 |
+| Scoreboard IGNORED | 372 |
+| Scoreboard FAIL | 0 |
+| UVM functional coverage | 100% |
+| UVM errors | 0 |
+| UVM fatal errors | 0 |
 
-- Module-level testing
-- AXI4-Lite verification
-- AXI4 Master verification
-- Multi-channel DMA testing
-- UVM-based constrained-random verification
+The simulation completed without reported UVM errors or fatal errors. The scoreboard classified 128 transactions as PASS, 372 as IGNORED, and none as FAIL.
+
+**Coverage note:** The reported 100% functional coverage applies to the covergroups and bins currently implemented. It does not establish complete verification of the entire DMA controller. Ignored transactions should be reviewed to confirm whether they represent expected non-transfer scenarios.
+
+## Verification Scope
+
+- AXI4-Lite configuration transactions
+- DMA channel operation
+- Multi-channel arbitration
+- Constrained-random stimulus generation
 - Scoreboard-based checking
 - Functional coverage
-- SystemVerilog Assertions
+- Assertion-based verification
+
+## Tools and Technologies
+
+- **HDL:** SystemVerilog
+- **Verification:** UVM 1.2
+- **Simulation:** Cadence Xcelium
+- **Simulation Platform:** EDA Playground
+- **Version Control:** Git and GitHub
+
+## Future Improvements
+
+- AXI4 burst-transfer support
+- Expanded coverage for transfer boundaries and arbitration scenarios
+- More comprehensive data-integrity and completion checking
+- Additional protocol assertions and corner-case testing
+- Automated regression testing
+- Throughput and latency analysis
+
+## Learning Outcomes
+
+- RTL design using SystemVerilog
+- DMA architecture and multi-channel control
+- AXI4 and AXI4-Lite protocol concepts
+- FSM design and round-robin arbitration
+- UVM testbench architecture and constrained-random verification
+- Scoreboard-based checking and functional coverage
+- Assertion-based verification
 
 ---
 
-# Tools
-
-- SystemVerilog
-- UVM 1.2
-- Cadence Xcelium
-- EDA Playground
-- Git
-- GitHub
-
----
-
-# Project Status
-
-Current implementation:
-
- RTL DMA Controller  
- AXI4-Lite Configuration Interface  
- AXI4 Master Interface  
- Multi-channel Arbitration  
- UVM Verification Environment  
- Functional Coverage  
- Assertions  
-
-Future improvements:
-
-- AXI Burst Transfer Support
-- Advanced Coverage Models
-- Regression Automation
-- Performance Analysis
-
----
-
-# Learning Outcomes
-
-This project provides hands-on experience with:
-
-- RTL Design using SystemVerilog
-- AXI4 and AXI4-Lite Protocols
-- DMA Architecture
-- FSM Design
-- Arbitration Techniques
-- UVM Verification Methodology
-- Functional Coverage
-- Assertion-Based Verification
+**Project Focus:** RTL Design | SystemVerilog | AXI Protocols | UVM | Functional Verification | Cadence Xcelium
