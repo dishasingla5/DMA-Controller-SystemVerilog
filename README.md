@@ -207,3 +207,6 @@ The simulation completed without reported UVM errors or fatal errors. The scoreb
 ---
 
 **Project Focus:** RTL Design | SystemVerilog | AXI Protocols | UVM | Functional Verification | Cadence Xcelium
+
+
+**Note:** The `docs/` and `sim/` directories are reserved for project documentation, verification reports, and simulation scripts as the project evolves.
