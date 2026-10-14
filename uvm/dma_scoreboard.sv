@@ -4,15 +4,18 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
+
 class dma_scoreboard extends uvm_scoreboard;
 
     `uvm_component_utils(dma_scoreboard)
+
 
     //-----------------------------------------
     // Analysis Implementation Port
     //-----------------------------------------
 
     uvm_analysis_imp #(dma_sequence_item, dma_scoreboard) analysis_export;
+
 
     //-----------------------------------------
     // Statistics
@@ -21,23 +24,29 @@ class dma_scoreboard extends uvm_scoreboard;
     int total;
     int pass;
     int fail;
+    int ignored;
+
+
 
     //-----------------------------------------
     // Constructor
     //-----------------------------------------
 
-    function new(string name = "dma_scoreboard",
-                 uvm_component parent = null);
+    function new(string name="dma_scoreboard",
+                 uvm_component parent=null);
 
-        super.new(name, parent);
+        super.new(name,parent);
 
-        analysis_export = new("analysis_export", this);
+        analysis_export = new("analysis_export",this);
 
-        total = 0;
-        pass  = 0;
-        fail  = 0;
+        total   = 0;
+        pass    = 0;
+        fail    = 0;
+        ignored = 0;
 
     endfunction
+
+
 
     //-----------------------------------------
     // Receive Transaction
@@ -45,7 +54,10 @@ class dma_scoreboard extends uvm_scoreboard;
 
     virtual function void write(dma_sequence_item tr);
 
+
         total++;
+
+
 
         //-------------------------------------
         // Channel Check
@@ -54,10 +66,14 @@ class dma_scoreboard extends uvm_scoreboard;
         if(tr.channel > 3) begin
 
             `uvm_error("SCB","Invalid Channel")
+
             fail++;
+
             return;
 
         end
+
+
 
         //-------------------------------------
         // Source Address Check
@@ -71,10 +87,14 @@ class dma_scoreboard extends uvm_scoreboard;
             })) begin
 
             `uvm_error("SCB","Invalid Source Address")
+
             fail++;
+
             return;
 
         end
+
+
 
         //-------------------------------------
         // Destination Address Check
@@ -88,10 +108,14 @@ class dma_scoreboard extends uvm_scoreboard;
             })) begin
 
             `uvm_error("SCB","Invalid Destination Address")
+
             fail++;
+
             return;
 
         end
+
+
 
         //-------------------------------------
         // Length Check
@@ -100,54 +124,60 @@ class dma_scoreboard extends uvm_scoreboard;
         if(tr.length == 0) begin
 
             `uvm_error("SCB","Length = 0")
+
             fail++;
+
             return;
 
         end
 
+
+
         //-------------------------------------
-        // Enable Check
+        // Control Check
         //-------------------------------------
 
-        if(!tr.enable) begin
+        // No DMA transfer expected
+        if(!tr.enable || !tr.start) begin
 
-            `uvm_error("SCB","DMA Disabled")
-            fail++;
+            ignored++;
+
+            `uvm_info("SCB",
+            "DMA Transfer Not Started - Ignored",
+            UVM_LOW)
+
             return;
 
         end
 
-        //-------------------------------------
-        // Start Check
-        //-------------------------------------
 
-        if(!tr.start) begin
-
-            `uvm_error("SCB","Start Bit Missing")
-            fail++;
-            return;
-
-        end
 
         //-------------------------------------
-        // PASS
+        // Valid DMA Transfer
         //-------------------------------------
 
         pass++;
 
+
         `uvm_info("SCB",
-                  "Transaction Accepted",
-                  UVM_LOW)
+        "Transaction Accepted",
+        UVM_LOW)
+
+
 
     endfunction
 
+
+
     //-----------------------------------------
-    // Report
+    // Report Phase
     //-----------------------------------------
 
     function void report_phase(uvm_phase phase);
 
+
         super.report_phase(phase);
+
 
         `uvm_info("SCB",
         $sformatf("\n\
@@ -156,15 +186,20 @@ DMA SCOREBOARD REPORT\n\
 ========================================\n\
 Received Transactions : %0d\n\
 PASS                  : %0d\n\
+IGNORED               : %0d\n\
 FAIL                  : %0d\n\
 ========================================",
         total,
         pass,
+        ignored,
         fail),
         UVM_NONE)
 
+
     endfunction
 
+
 endclass
+
 
 `endif

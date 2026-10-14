@@ -12,7 +12,7 @@ class dma_sequence extends uvm_sequence #(dma_sequence_item);
     // Number of Transactions
     //-----------------------------------------
 
-    int num_transactions = 10;
+    int num_transactions = 500;
 
     //-----------------------------------------
     // Constructor
@@ -37,8 +37,14 @@ class dma_sequence extends uvm_sequence #(dma_sequence_item);
             req = dma_sequence_item::type_id::create("req");
 
             start_item(req);
+          
+            if(!req.randomize() with {
 
-            if(!req.randomize()) begin
+                channel inside {[0:3]};
+                length inside {[1:8]};
+
+            }) begin
+
 
                 `uvm_fatal("SEQ", "Randomization Failed")
 
@@ -50,7 +56,6 @@ class dma_sequence extends uvm_sequence #(dma_sequence_item);
                       $sformatf("Generated Transaction"),
                       UVM_LOW)
 
-            req.print();
 
         end
 

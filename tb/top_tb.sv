@@ -6,27 +6,33 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
+
 //------------------------------------------------------------
 // UVM Includes
 //------------------------------------------------------------
 
+`include "dma_sequence_item.sv"
 `include "dma_sequence.sv"
 `include "dma_sequencer.sv"
-`include "dma_sequence_item.sv"
-`include "dma_monitor.sv"
 `include "dma_driver.sv"
+`include "dma_monitor.sv"
 `include "dma_agent.sv"
 `include "dma_scoreboard.sv"
-`include "dma_env.sv"
 `include "dma_coverage.sv"
+`include "dma_env.sv"
 `include "dma_test.sv"
 `include "assertions.sv"
 
+
+
 module top_tb;
+
 
     parameter DATA_WIDTH = 32;
     parameter ADDR_WIDTH = 32;
     parameter NUM_CH     = 4;
+
+
 
     //--------------------------------------------------------
     // Clock / Reset
@@ -34,6 +40,8 @@ module top_tb;
 
     logic clk;
     logic rst_n;
+
+
 
     //--------------------------------------------------------
     // Interfaces
@@ -47,10 +55,13 @@ module top_tb;
         .rst_n(rst_n)
     );
 
+
     axi_if #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) mem_if();
+
+
 
     //--------------------------------------------------------
     // DUT
@@ -67,6 +78,8 @@ module top_tb;
         .mem_if(mem_if)
     );
 
+
+
     //--------------------------------------------------------
     // Memory Model
     //--------------------------------------------------------
@@ -77,14 +90,21 @@ module top_tb;
         .mem_if(mem_if)
     );
 
+
+
     //--------------------------------------------------------
-    // Clock
+    // Clock Generation
     //--------------------------------------------------------
 
     initial begin
+
         clk = 0;
+
         forever #5 clk = ~clk;
+
     end
+
+
 
     //--------------------------------------------------------
     // Reset
@@ -94,21 +114,27 @@ module top_tb;
 
         rst_n = 0;
 
+
         cfg_if.awaddr  = '0;
         cfg_if.awvalid = 0;
         cfg_if.wdata   = '0;
         cfg_if.wvalid  = 0;
         cfg_if.bready  = 1;
 
+
         cfg_if.araddr  = '0;
         cfg_if.arvalid = 0;
         cfg_if.rready  = 1;
 
+
         repeat(5) @(posedge clk);
+
 
         rst_n = 1;
 
     end
+
+
 
     //--------------------------------------------------------
     // UVM Configuration
@@ -116,16 +142,26 @@ module top_tb;
 
     initial begin
 
+
         uvm_config_db#(virtual axil_if)::set(
+
             null,
+
             "*",
+
             "cfg_if",
+
             cfg_if
+
         );
+
 
         run_test("dma_test");
 
+
     end
+
+
 
     //--------------------------------------------------------
     // One Hot Checker
@@ -133,13 +169,17 @@ module top_tb;
 
     always @(posedge clk) begin
 
+
         if($countones(dut.ch_grant) > 1) begin
 
             $error("Multiple DMA Grants");
 
         end
 
+
     end
+
+
 
     //--------------------------------------------------------
     // Watchdog
@@ -147,23 +187,48 @@ module top_tb;
 
     initial begin
 
+
         wait(rst_n);
 
-        repeat(5000) @(posedge clk);
 
-        `uvm_fatal("TIMEOUT","Simulation Timeout")
+        // Increased timeout for UVM random transactions
+        repeat(50000) @(posedge clk);
+
+
+        `uvm_fatal("TIMEOUT",
+                   "Simulation Timeout")
+
 
     end
 
+
+
     //--------------------------------------------------------
-    // Waveform
+    // Waveform Dump
     //--------------------------------------------------------
 
     initial begin
 
+
+`ifdef XCELIUM
+
+        $shm_open("dma_waveform.shm");
+
+        $shm_probe(top_tb,"AS");
+
+
+`else
+
         $dumpfile("dma_top.vcd");
+
         $dumpvars(0,top_tb);
 
+
+`endif
+
+
     end
+
+
 
 endmodule

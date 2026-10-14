@@ -112,7 +112,7 @@ class dma_monitor extends uvm_monitor;
                                   "Channel-0 Transaction",
                                   UVM_LOW)
 
-                        tr.print();
+                       
 
                         tr = dma_sequence_item::type_id::create("tr");
 
@@ -146,7 +146,7 @@ class dma_monitor extends uvm_monitor;
                                   "Channel-1 Transaction",
                                   UVM_LOW)
 
-                        tr.print();
+                     
 
                         tr = dma_sequence_item::type_id::create("tr");
 
@@ -180,7 +180,6 @@ class dma_monitor extends uvm_monitor;
                                   "Channel-2 Transaction",
                                   UVM_LOW)
 
-                        tr.print();
 
                         tr = dma_sequence_item::type_id::create("tr");
 
@@ -214,7 +213,7 @@ class dma_monitor extends uvm_monitor;
                                   "Channel-3 Transaction",
                                   UVM_LOW)
 
-                        tr.print();
+                      
 
                         tr = dma_sequence_item::type_id::create("tr");
 
